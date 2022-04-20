@@ -60,3 +60,16 @@ Edit local.settings.json file:
   }
 }
 ```
+
+## Trouble shootings
+
+## Azure Functions Settings
+
+### azure function Did not find functions with language [dotnet].
+
+`Settings > Configuration > Application settings`
+
+`FUNCTIONS_WORKER_RUNTIME` settings value should be `dotnet-isolated`
+
+Name: `FUNCTIONS_WORKER_RUNTIME`
+value: `dotnet-isolated`
