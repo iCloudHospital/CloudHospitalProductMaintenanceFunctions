@@ -9,7 +9,7 @@ Set Azure Storage Account connection string
 ## Usages
 
 ```bash
-$ curl --header "ch-api-key:samplekey" --request GET "http://localhost:7071/api/cleanAssetsOnPrdStageFunction?containername=test-func"
+$ curl --request GET "http://localhost:7071/api/cleanAssetsOnPrdStageFunction?containername=test-func"
 ```
 
 ## development environment
