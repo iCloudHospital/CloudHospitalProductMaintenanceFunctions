@@ -26,12 +26,6 @@ namespace CloudHospital_ProductMaintenanceFunctions
             {
                 configuration.GetSection("BlobStorageOptions").Bind(options);
             });
-
-            services.AddOptions<AuthorizationOptions>()
-            .Configure<IConfiguration>((options, configuration) =>
-            {
-                configuration.GetSection("AuthorizationOptions").Bind(options);
-            });
         }
     }
 }
