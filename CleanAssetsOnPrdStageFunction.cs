@@ -9,7 +9,6 @@ using System.Text.Json;
 using System.Web;
 using System.Threading.Tasks;
 using Azure.Storage.Blobs;
-using Azure.Storage;
 using System.Threading;
 using Azure.Storage.Blobs.Models;
 using System.Linq;
@@ -20,41 +19,24 @@ public class CleanAssetsOnPrdStageFunction
 {
     private readonly ILogger _logger;
     private BlobStorageOptions _blobStorageOptions;
-    private AuthorizationOptions _authorizationOptions;
 
     public CleanAssetsOnPrdStageFunction(
         IOptionsMonitor<BlobStorageOptions> blobStorageOptionsAccessor,
-        IOptionsMonitor<AuthorizationOptions> authorizationOptionsAccessor,
         ILoggerFactory loggerFactory)
     {
         _blobStorageOptions = blobStorageOptionsAccessor.CurrentValue;
-        _authorizationOptions = authorizationOptionsAccessor.CurrentValue;
+
         _logger = loggerFactory.CreateLogger<CleanAssetsOnPrdStageFunction>();
     }
 
     [Function("cleanAssetsOnPrdStageFunction")]
-    public async Task<HttpResponseData> Run([HttpTrigger(AuthorizationLevel.Function, "get", "post")] HttpRequestData req)
+    public async Task<HttpResponseData> Run([HttpTrigger(AuthorizationLevel.Function, "get")] HttpRequestData req)
     {
         var containerName = string.Empty;
         HttpResponseData response;
 
         try
         {
-            if (!string.IsNullOrWhiteSpace(_authorizationOptions.ApiKey))
-            {
-                var authorizationKey = "ch-api-key";
-                if (!req.Headers.Contains(authorizationKey))
-                {
-                    throw new AuthorizationException("No api key provided");
-                }
-
-                var key = req.Headers.GetValues(authorizationKey).FirstOrDefault();
-                if (string.IsNullOrWhiteSpace(key) || !_authorizationOptions.ApiKey.Equals(key, StringComparison.InvariantCulture))
-                {
-                    throw new AuthorizationException("Api key is invalid.");
-                }
-            }
-
             if (req.Method.Equals("get", System.StringComparison.InvariantCultureIgnoreCase))
             {
                 if (!string.IsNullOrWhiteSpace(req.Url?.Query))
@@ -64,21 +46,11 @@ public class CleanAssetsOnPrdStageFunction
                 }
             }
 
-            // if (req.Method.Equals("post", System.StringComparison.InvariantCultureIgnoreCase))
-            // {
-
-            // }
-
-            _logger.LogInformation("C# HTTP trigger function processed a request.");
-
             _logger.LogInformation($"{JsonSerializer.Serialize(_blobStorageOptions)}");
 
             if (string.IsNullOrWhiteSpace(containerName))
             {
-                foreach (var item in _blobStorageOptions.ContainerNames)
-                {
-                    await ClearAssetsAsync(item);
-                }
+                throw new ArgumentNullException("Containername is required", nameof(containerName));
             }
             else
             {
@@ -89,15 +61,9 @@ public class CleanAssetsOnPrdStageFunction
 
             response.WriteString($"Ok");
         }
-        catch (AuthorizationException ex)
-        {
-            response = req.CreateResponse(HttpStatusCode.NonAuthoritativeInformation);
-
-            response.WriteString(ex.Message);
-        }
         catch (ArgumentNullException ex)
         {
-            response = req.CreateResponse(HttpStatusCode.NotAcceptable);
+            response = req.CreateResponse(HttpStatusCode.BadRequest);
 
             response.WriteString(ex.Message);
         }
@@ -113,7 +79,7 @@ public class CleanAssetsOnPrdStageFunction
 
             _logger.LogError($"{ex.Message} ${ex}");
 
-            response.WriteString($"Internal Error");
+            response.WriteString($"Internal Error: {ex.Message}");
         }
 
         response.Headers.Add("Content-Type", "text/plain; charset=utf-8");
